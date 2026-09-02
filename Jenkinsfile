@@ -1,9 +1,13 @@
 pipeline {
     agent any
 
+    tools {
+        nodejs 'Node 22'
+    }
+
     stages {
 
-        stage('Install') {
+        stage('Install') { 
             steps {
                 sh 'npm ci'
             }
