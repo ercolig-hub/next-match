@@ -7,9 +7,15 @@ pipeline {
 
     stages {
 
-        stage('Install') { 
+        stage('Install') {
             steps {
                 sh 'npm ci'
+            }
+        }
+
+        stage('Prisma Generate') {
+            steps {
+                sh 'npx prisma generate'
             }
         }
 
