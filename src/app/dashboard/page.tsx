@@ -14,7 +14,7 @@ export default async function DashboardPage() {
   return (
     <main className="p-10">
       <h1 className="text-3xl font-bold">
-        Dashboard
+        Dashboard- Git Branch Test
       </h1>
 
       <div className="mt-6 rounded-lg border p-6">
