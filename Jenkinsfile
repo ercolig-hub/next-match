@@ -5,6 +5,10 @@ pipeline {
         nodejs 'Node 22'
     }
 
+    environment {
+        DATABASE_URL = credentials('nextapp-database-url')
+    }
+
     stages {
 
         stage('Install') {
