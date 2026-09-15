@@ -17,8 +17,8 @@ pipeline {
             steps {
                 sh 'git config --global --add safe.directory /var/jenkins_home/workspace/next-match-prova'
                 sh 'git fetch --all'
-                sh 'git checkout buildapp'
-                sh 'git reset --hard origin/buildapp'
+                sh 'git checkout main'
+                sh 'git reset --hard origin/main'
             }
         }
 
