@@ -1,7 +1,9 @@
+
 "use client";
 
 import { useEffect, useRef, useState } from "react";
 import { authClient } from "@/lib/auth-client";
+import { supabase } from "@/lib/supabase";
 
 type Message = {
   id: string;
@@ -28,7 +30,8 @@ export default function MatchChatPage({
   const [messages, setMessages] = useState<Message[]>([]);
   const [content, setContent] = useState("");
   const [matchId, setMatchId] = useState("");
-  const [otherUser, setOtherUser] = useState<OtherUser | null>(null);
+  const [otherUser, setOtherUser] =
+    useState<OtherUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -42,7 +45,6 @@ export default function MatchChatPage({
 
         setMatchId(matchId);
 
-        // Recupera l'altro utente del Match
         const matchResponse = await fetch(
           `/api/matches/${matchId}`
         );
@@ -52,21 +54,35 @@ export default function MatchChatPage({
           setOtherUser(userData);
         }
 
-        // Recupera i messaggi
         const messagesResponse = await fetch(
           `/api/matches/${matchId}/messages`
         );
 
-        const messagesData = await messagesResponse.json();
+        const messagesData =
+          await messagesResponse.json();
 
         if (!messagesResponse.ok) {
-          console.error("Errore API:", messagesData);
+          console.error(
+            "Errore API:",
+            messagesData
+          );
           setMessages([]);
           return;
         }
 
         if (Array.isArray(messagesData)) {
-          setMessages(messagesData);
+          const uniqueMessages = Array.from(
+            new Map(
+              messagesData.map(
+                (message: Message) => [
+                  message.id,
+                  message,
+                ]
+              )
+            ).values()
+          );
+
+          setMessages(uniqueMessages);
         } else {
           console.error(
             "La risposta non è un array:",
@@ -75,7 +91,10 @@ export default function MatchChatPage({
           setMessages([]);
         }
       } catch (error) {
-        console.error("Errore nel caricamento:", error);
+        console.error(
+          "Errore nel caricamento:",
+          error
+        );
         setMessages([]);
       } finally {
         setLoading(false);
@@ -90,6 +109,73 @@ export default function MatchChatPage({
       behavior: "smooth",
     });
   }, [messages]);
+
+  useEffect(() => {
+    if (!matchId) {
+      return;
+    }
+
+    console.log(
+      "Creo canale realtime:",
+      `match-${matchId}`
+    );
+
+    const channel = supabase
+      .channel(`match-${matchId}`)
+      .on(
+        "broadcast",
+        { event: "new-message" },
+        (payload) => {
+          console.log(
+            "Nuovo messaggio realtime:",
+            payload
+          );
+
+          const newMessage =
+            payload.payload.message as Message;
+
+          if (!newMessage?.id) {
+            console.error(
+              "Messaggio realtime non valido:",
+              newMessage
+            );
+            return;
+          }
+
+          setMessages((current) => {
+            const alreadyExists = current.some(
+              (message) =>
+                message.id === newMessage.id
+            );
+
+            if (alreadyExists) {
+              console.log(
+                "Messaggio già presente:",
+                newMessage.id
+              );
+              return current;
+            }
+
+            return [...current, newMessage];
+          });
+        }
+      )
+      .subscribe((status) => {
+        console.log(
+          `Realtime match ${matchId}:`,
+          status
+        );
+      });
+
+    return () => {
+      console.log(
+        "Rimuovo canale realtime:",
+        `match-${matchId}`
+      );
+
+      supabase.removeChannel(channel);
+    };
+  }, [matchId]);
 
   async function sendMessage() {
     if (!content.trim() || !matchId) {
@@ -113,20 +199,29 @@ export default function MatchChatPage({
       const data = await response.json();
 
       if (!response.ok) {
-        console.error("Errore nell'invio:", data);
+        console.error(
+          "Errore nell'invio:",
+          data
+        );
         return;
       }
 
-      setMessages((current) => [...current, data]);
+      console.log(
+        "Messaggio salvato:",
+        data
+      );
+
       setContent("");
     } catch (error) {
-      console.error("Errore:", error);
+      console.error(
+        "Errore:",
+        error
+      );
     }
   }
 
   return (
     <main className="mx-auto flex h-[calc(100vh-80px)] max-w-2xl flex-col">
-      {/* HEADER */}
       <div className="flex items-center gap-3 border-b bg-white p-4 shadow-sm">
         {otherUser?.image ? (
           <img
@@ -151,7 +246,6 @@ export default function MatchChatPage({
         </div>
       </div>
 
-      {/* MESSAGGI */}
       <div className="flex-1 overflow-y-auto bg-gray-100 p-4">
         {loading ? (
           <p className="text-center text-gray-500">
@@ -167,7 +261,8 @@ export default function MatchChatPage({
           <div className="space-y-2">
             {messages.map((message) => {
               const isMine =
-                message.user?.id === session?.user?.id;
+                message.user?.id ===
+                session?.user?.id;
 
               return (
                 <div
@@ -187,7 +282,8 @@ export default function MatchChatPage({
                   >
                     {!isMine && (
                       <p className="mb-1 text-xs font-bold text-sky-600">
-                        {message.user?.name ?? "Utente"}
+                        {message.user?.name ??
+                          "Utente"}
                       </p>
                     )}
 
@@ -204,10 +300,13 @@ export default function MatchChatPage({
                     >
                       {new Date(
                         message.createdAt
-                      ).toLocaleTimeString("it-IT", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
+                      ).toLocaleTimeString(
+                        "it-IT",
+                        {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        }
+                      )}
                     </p>
                   </div>
                 </div>
@@ -219,7 +318,6 @@ export default function MatchChatPage({
         )}
       </div>
 
-      {/* INPUT */}
       <div className="border-t bg-white p-3">
         <div className="flex gap-2">
           <input
@@ -249,3 +347,4 @@ export default function MatchChatPage({
     </main>
   );
 }
+

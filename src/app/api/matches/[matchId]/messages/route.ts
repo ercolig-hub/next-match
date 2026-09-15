@@ -1,6 +1,8 @@
+
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { supabase } from "@/lib/supabase";
 
 export async function POST(
   request: Request,
@@ -69,9 +71,28 @@ export async function POST(
       },
     });
 
-    return NextResponse.json(message, { status: 201 });
+    const channel = supabase.channel(`match-${matchId}`);
+
+    const realtimeResult = await channel.httpSend(
+      "new-message",
+      {
+        message,
+      }
+    );
+
+    console.log(
+      "Messaggio inviato a Supabase Realtime:",
+      realtimeResult
+    );
+
+    return NextResponse.json(message, {
+      status: 201,
+    });
   } catch (error) {
-    console.error(error);
+    console.error(
+      "Errore invio messaggio:",
+      error
+    );
 
     return NextResponse.json(
       { error: "Errore interno del server" },
@@ -142,7 +163,10 @@ export async function GET(
 
     return NextResponse.json(messages);
   } catch (error) {
-    console.error(error);
+    console.error(
+      "Errore caricamento messaggi:",
+      error
+    );
 
     return NextResponse.json(
       { error: "Errore interno del server" },
