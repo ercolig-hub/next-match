@@ -100,7 +100,10 @@ export default function ProfilePage() {
           )}
 
           <CldUploadWidget
-            uploadPreset="next-match"
+              options={{
+                cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
+                uploadPreset: "next-match",
+              }}
             onSuccess={(result) => {
               if (
                 typeof result.info === "object" &&
